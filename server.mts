@@ -2,16 +2,13 @@ import * as ws from 'ws';
 import * as common from './common.mjs'
 
 
-interface Player {
+interface PlayerWithWs extends common.Player{
     clientWs: ws.WebSocket,
-    id: number,
-    x: number,
-    y: number,
 }
 
-const players = new Map<number, Player>
+const players = new Map<number, PlayerWithWs>
 let idCounter = 0;
-let eventQueue: Array<common.PlayerJoined> = [];
+let eventQueue: Array<common.Event> = [];
 
 const wss = new ws.WebSocketServer({
     port: common.SERVER_PORT,
@@ -21,7 +18,7 @@ function tick() {
     for (let event of eventQueue) {
         switch (event.kind) {
             case "PlayerJoined": {
-                const player: Player|undefined = players.get(event.id);
+                const player: PlayerWithWs|undefined = players.get(event.id);
                 if (player === undefined) continue;
                 player.clientWs.send(JSON.stringify({
                     kind: "Hello",
@@ -29,18 +26,20 @@ function tick() {
                 }));
                 const eventString = JSON.stringify(event);
                 players.forEach((otherPlayer) => {
-                    if (otherPlayer.id !== player.id) {
-                        player.clientWs.send(JSON.stringify({
-                            kind: "PlayerJoined",
-                            id: otherPlayer.id,
-                            x: otherPlayer.x,
-                            y: otherPlayer.y,
-                        }));
-                    }
+                    player.clientWs.send(JSON.stringify({
+                        kind: "PlayerJoined",
+                        id: otherPlayer.id,
+                        x: otherPlayer.x,
+                        y: otherPlayer.y,
+                    }));
                     if (otherPlayer.id !== player.id) {
                         otherPlayer.clientWs.send(eventString);
                     }
                 });
+            } break;
+            case "PlayerLeft": {
+                const eventString: string = JSON.stringify(event);
+                players.forEach((player) => {player.clientWs.send(eventString)});
             } break;
         }
     }
@@ -53,7 +52,18 @@ function tick() {
         const id = idCounter++;
         const x = Math.random() * common.WORLD_WIDTH;
         const y = Math.random() * common.WORLD_HEIGHT;
-        const player = {clientWs, id, x, y};
+        const player = {
+            clientWs,
+            id,
+            x,
+            y,
+            moving: {
+                'up': false,
+                'down': false,
+                'left': false,
+                'right': false,
+            }
+        };
         players.set(id, player);
         console.log(`Player ${id} connected`);
         eventQueue.push({
@@ -63,6 +73,10 @@ function tick() {
 
         clientWs.on("close", () => {
             console.log(`Player ${id} disconnected`);
+            eventQueue.push({
+                kind: "PlayerLeft",
+                id,
+            });
             players.delete(id);
         });
     })

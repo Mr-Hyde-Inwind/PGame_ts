@@ -2,9 +2,21 @@ export const SERVER_PORT  = 6970;
 export const WORLD_WIDTH  = 800;
 export const WORLD_HEIGHT = 800;
 export const SERVER_FPS   = 30;
+export const PLAYER_SIZE  = 30;
 
 function isNumber(arg: any): arg is number {
     return typeof(arg) === "number";
+}
+
+type Direction = 'up' | 'down' | 'left' | 'right';
+
+export interface Player {
+    id: number,
+    x: number,
+    y: number,
+    moving: {
+        [k in Direction]: boolean
+    },
 }
 
 export interface Hello {
@@ -32,3 +44,16 @@ export function isPlayerJoined(arg: any): arg is PlayerJoined {
         && isNumber(arg.x)
         && isNumber(arg.y);
 }
+
+export interface PlayerLeft {
+    kind: "PlayerLeft",
+    id: number,
+}
+
+export function isPlayerLeft(arg: any): arg is PlayerLeft {
+    return arg
+        && arg.kind === "PlayerLeft"
+        && isNumber(arg.id);
+}
+
+export type Event = PlayerJoined | PlayerLeft;
