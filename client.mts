@@ -13,6 +13,113 @@ import * as common from './common.mjs'
         const players = new Map<number, common.Player>();
         let myId: undefined|number = undefined
         const ws = new WebSocket(`ws://localhost:${common.SERVER_PORT}`);
+
+        window.addEventListener("keydown", (event) => {
+            let sendingEvent: common.StartMoving;
+            if (myId === undefined) {
+                console.log('Error: Trying to send moving instruction to server without id');
+                return;
+            }
+            if (!event.repeat) {
+                switch(event.code) {
+                    case "KeyW":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     true,
+                            direction: "up",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                    case "KeyS":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     true,
+                            direction: "down",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                    case "KeyA":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     true,
+                            direction: "left",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                    case "KeyD":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     true,
+                            direction: "right",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                }
+            }
+            event.stopPropagation();
+        });
+
+        window.addEventListener("keyup", (event) => {
+            let sendingEvent: common.StartMoving;
+            if (myId === undefined) {
+                console.log('Error: Trying to send moving instruction to server without id');
+                return;
+            }
+            if (!event.repeat) {
+                switch(event.code) {
+                    case "KeyW":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     false,
+                            direction: "up",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                    case "KeyD":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     false,
+                            direction: "right",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                    case "KeyS":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     false,
+                            direction: "down",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                    case "KeyA":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     false,
+                            direction: "left",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                    case "KeyD":
+                        sendingEvent = {
+                            kind:      "StartMoving",
+                            id:        myId,
+                            start:     true,
+                            direction: "right",
+                        }
+                        ws.send(JSON.stringify(sendingEvent));
+                        break;
+                }
+            }
+            event.stopPropagation();
+        });
         ws.addEventListener("close", (event) => {
             console.log("WEBSOCKET CLOSE", event);
         });
@@ -44,6 +151,16 @@ import * as common from './common.mjs'
                     });
                 } else if (common.isPlayerLeft(message)) {
                     players.delete(message.id);
+                } else if (common.isPlayerMoving(message)) {
+                    const player = players.get(message.id);
+                    if (player === undefined) {
+                        console.log(`Received bogus-amogus message from server`, message);
+                        ws.close();
+                        return;
+                    }
+                    player.moving[message.direction] = message.start;
+                    player.x = message.x;
+                    player.y = message.y;
                 } else {
                     console.log("Received bogus-amogus message from server", message);
                     ws.close();
@@ -53,10 +170,13 @@ import * as common from './common.mjs'
         ws.addEventListener("error", (event) => {
             console.log("WEBSOCKET ERROR", event);
         });
+
         let previousTime: number = 0;
         const frame = (timestamp: number) => {
             const deltaTime: number = (timestamp - previousTime)/1000;
-            previousTime = deltaTime;
+            previousTime = timestamp;
+
+            players.forEach((player) => common.updatePlayer(player, deltaTime));
 
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, common.WORLD_WIDTH, common.WORLD_HEIGHT);

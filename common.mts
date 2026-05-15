@@ -4,6 +4,8 @@ export const WORLD_HEIGHT = 800;
 export const SERVER_FPS   = 30;
 export const PLAYER_SIZE  = 30;
 
+const PLAYER_SPEED = 300;
+
 function isNumber(arg: any): arg is number {
     return typeof(arg) === "number";
 }
@@ -38,6 +40,29 @@ export interface Player {
     },
 }
 
+export type Vector2 = {x: number, y: number};
+
+export const DIRECTION_VECTORS: {[key in Direction]: Vector2} = {
+    'up':    {x: 0, y: -1},
+    'down':  {x: 0, y: 1},
+    'left':  {x: -1, y: 0},
+    'right': {x: 1, y: 0},
+}
+
+export function updatePlayer(player: Player, deltaTime: number) {
+    let dir: Direction;
+    let dx = 0;
+    let dy = 0;
+    for (dir in DIRECTION_VECTORS) {
+        if (player.moving[dir]) {
+            dx += DIRECTION_VECTORS[dir].x;
+            dy += DIRECTION_VECTORS[dir].y;
+        }
+    }
+    player.x += dx*PLAYER_SPEED*deltaTime;
+    player.y += dy*PLAYER_SPEED*deltaTime;
+}
+
 export interface StartMoving {
     kind:      "StartMoving",
     id:        number,
@@ -49,6 +74,25 @@ export function isStartMoving(arg: any): arg is StartMoving {
     return arg
         && arg.kind === "StartMoving"
         && isNumber(arg.id)
+        && isBoolean(arg.start)
+        && isDirection(arg.direction);
+}
+
+export interface PlayerMoving {
+    kind: "PlayerMoving",
+    id: number,
+    x: number,
+    y: number,
+    start: boolean,
+    direction: Direction
+}
+
+export function isPlayerMoving(arg: any): arg is PlayerMoving {
+    return arg
+        && arg.kind === "PlayerMoving"
+        && isNumber(arg.id)
+        && isNumber(arg.x)
+        && isNumber(arg.y)
         && isBoolean(arg.start)
         && isDirection(arg.direction);
 }
@@ -90,4 +134,4 @@ export function isPlayerLeft(arg: any): arg is PlayerLeft {
         && isNumber(arg.id);
 }
 
-export type Event = PlayerJoined | PlayerLeft;
+export type Event = PlayerJoined | PlayerLeft | StartMoving | PlayerMoving;

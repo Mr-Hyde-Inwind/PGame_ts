@@ -41,9 +41,17 @@ function tick() {
                 const eventString: string = JSON.stringify(event);
                 players.forEach((player) => {player.clientWs.send(eventString)});
             } break;
+            case "PlayerMoving": {
+                const player = players.get(event.id);
+                if (player === undefined) continue;
+                player.moving[event.direction] = event.start;
+                const eventString = JSON.stringify(event);
+                players.forEach((player) => player.clientWs.send(eventString));
+            } break;
         }
     }
     eventQueue.length = 0;
+    players.forEach((player) => common.updatePlayer(player, 1/common.SERVER_FPS));
     setTimeout(tick, 1000/common.SERVER_FPS);
 }
 
@@ -52,7 +60,7 @@ function tick() {
         const id = idCounter++;
         const x = Math.random() * common.WORLD_WIDTH;
         const y = Math.random() * common.WORLD_HEIGHT;
-        const player = {
+        let player = {
             clientWs,
             id,
             x,
@@ -69,6 +77,20 @@ function tick() {
         eventQueue.push({
             kind: "PlayerJoined",
             id, x, y
+        });
+
+        clientWs.addEventListener("message", (event) => {
+            const message = JSON.parse(event.data.toString());
+            if (common.isStartMoving(message)) {
+                eventQueue.push({
+                    kind: "PlayerMoving",
+                    id,
+                    x: player.x,
+                    y: player.y,
+                    start: message.start,
+                    direction: message.direction,
+                });
+            }
         });
 
         clientWs.on("close", () => {
