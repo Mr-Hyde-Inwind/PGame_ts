@@ -2,6 +2,7 @@ import * as common from './common.mjs'
 
 (
     async () => {
+        console.log(`SERVER FPS: ${common.SERVER_FPS}`);
         const canvas = document.getElementById('game') as HTMLCanvasElement|null
         if (canvas === null) throw new Error("no element with id `game`");
         canvas.height = common.WORLD_HEIGHT;
@@ -178,9 +179,13 @@ import * as common from './common.mjs'
 
             players.forEach((player) => common.updatePlayer(player, deltaTime));
 
-            ctx.fillStyle = "white";
+            ctx.fillStyle = "gray";
             ctx.fillRect(0, 0, common.WORLD_WIDTH, common.WORLD_HEIGHT);
             for (const [_, player] of players) {
+                if (player.id === myId) {
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(player.x - common.PLAYER_SIZE/2 - 3, player.y - common.PLAYER_SIZE/2 - 3, common.PLAYER_SIZE+6, common.PLAYER_SIZE+6);
+                }
                 ctx.fillStyle = "red";
                 ctx.fillRect(player.x - common.PLAYER_SIZE/2, player.y - common.PLAYER_SIZE/2, common.PLAYER_SIZE, common.PLAYER_SIZE);
             }

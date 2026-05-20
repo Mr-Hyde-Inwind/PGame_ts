@@ -1,10 +1,10 @@
 export const SERVER_PORT  = 6970;
 export const WORLD_WIDTH  = 800;
 export const WORLD_HEIGHT = 800;
-export const SERVER_FPS   = 30;
+export const SERVER_FPS   = 60;
 export const PLAYER_SIZE  = 30;
 
-const PLAYER_SPEED = 300;
+const PLAYER_SPEED = 500;
 
 function isNumber(arg: any): arg is number {
     return typeof(arg) === "number";
@@ -59,8 +59,8 @@ export function updatePlayer(player: Player, deltaTime: number) {
             dy += DIRECTION_VECTORS[dir].y;
         }
     }
-    player.x += dx*PLAYER_SPEED*deltaTime;
-    player.y += dy*PLAYER_SPEED*deltaTime;
+    player.x = (player.x + dx*PLAYER_SPEED*deltaTime + WORLD_WIDTH) % WORLD_WIDTH;
+    player.y = (player.y + dy*PLAYER_SPEED*deltaTime + WORLD_HEIGHT) % WORLD_HEIGHT;
 }
 
 export interface StartMoving {
